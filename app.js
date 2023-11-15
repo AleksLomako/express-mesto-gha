@@ -1,6 +1,5 @@
 const express = require('express');
 const mongoose = require('mongoose');
-const bodyParser = require('body-parser');
 
 // Роуты
 const UserRouter = require('./routes/users');
@@ -14,8 +13,7 @@ mongoose.connect(DB_URL, {
   //
 });
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
 
 app.use((req, res, next) => {
   req.user = {
@@ -26,6 +24,9 @@ app.use((req, res, next) => {
 
 app.use('/', UserRouter);
 app.use('/', CardRouter);
+app.use('*', (req, res) => {
+  res.status(404).send({ message: 'Страница не найдена' });
+});
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
