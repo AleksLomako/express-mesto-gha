@@ -101,18 +101,15 @@ const loginUser = (req, res, next) => {
 
 // Получение информации о текущем пользователе
 const getCurrentUser = (req, res, next) => {
-  User.findById(req.user._id)
-    .orFail()
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof mongoose.Error.DocumentNotFoundError) {
-        return next(new NotFoundError('Не найден пользователь с таким id'));
+  User
+    .findOne({ _id: req.params.userId })
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Нет пользователя с таким id');
       }
-      if (error instanceof mongoose.Error.CastError) {
-        return next(new BadRequestError('Передан некорректный id'));
-      }
-      return next(error);
-    });
+      res.send(user);
+    })
+    .catch(next);
 };
 
 module.exports = {
