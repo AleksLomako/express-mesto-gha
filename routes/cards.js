@@ -3,10 +3,12 @@ const {
   getCards, createCard, deleteCard, likeCard, disLikeCard,
 } = require('../controllers/cards');
 
-CardRouter.get('/cards', getCards);
-CardRouter.post('/cards', createCard);
-CardRouter.delete('/cards/:cardId', deleteCard);
-CardRouter.put('/cards/:cardId/likes', likeCard);
-CardRouter.delete('/cards/:cardId/likes', disLikeCard);
+const { validateCreateCard, validateCardId } = require('../middlewares/validation');
+
+CardRouter.get('/cards', getCards); // Загрузка всех карточек
+CardRouter.post('/cards', validateCreateCard, createCard); // Создание карточки
+CardRouter.delete('/cards/:cardId', validateCardId, deleteCard); // Удаление своей карточки
+CardRouter.put('/cards/:cardId/likes', validateCardId, likeCard); // Лайк карточке
+CardRouter.delete('/cards/:cardId/likes', validateCardId, disLikeCard); // Дизлайк карточке
 
 module.exports = CardRouter;
