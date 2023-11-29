@@ -6,58 +6,6 @@ const User = require('../models/user');
 const NotFoundError = require('../errors/NotFoundError');
 const BadRequestError = require('../errors/BadRequestError');
 const ConflictError = require('../errors/ConflictError');
-const UnauthorizedError = require('../errors/UnauthorizedError');
-
-// Загрузка всех пользователей
-const getUsers = (req, res, next) => {
-  User.find({})
-    .then((users) => res.send(users))
-    .catch(next);
-};
-
-// Получение пользователя по ID
-const getUserById = (req, res, next) => {
-  User.findById(req.params.userId)
-    .orFail()
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof mongoose.Error.DocumentNotFoundError) {
-        return next(new NotFoundError('Не найден пользователь с таким id'));
-      }
-      if (error instanceof mongoose.Error.CastError) {
-        return next(new BadRequestError('Передан некорректный id'));
-      }
-      return next(error);
-    });
-};
-
-// Обновление информации профиля
-const updateProfile = (req, res, next) => {
-  const { name, about } = req.body;
-  User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, runValidators: true })
-    .orFail()
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof mongoose.Error.DocumentNotFoundError) {
-        return next(new NotFoundError('Не найден пользователь с таким id'));
-      }
-      return next(error);
-    });
-};
-
-// Обновление аватара профиля
-const updateAvatar = (req, res, next) => {
-  const { avatar } = req.body;
-  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true, runValidators: true })
-    .orFail()
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof mongoose.Error.DocumentNotFoundError) {
-        return next(new NotFoundError('Не найден пользователь с таким id'));
-      }
-      return next(error);
-    });
-};
 
 // Регистрация пользователя
 const createUser = (req, res, next) => {
@@ -94,24 +42,83 @@ const loginUser = (req, res, next) => {
       const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
       res.send({ token });
     })
-    .catch(() => {
-      next(new UnauthorizedError('Неправильная почта или пароль'));
+    .catch((error) => {
+      next(error);
     });
+};
+
+// Загрузка всех пользователей
+const getUsers = (req, res, next) => {
+  User.find({})
+    .then((users) => res.send(users))
+    .catch(next);
 };
 
 // Получение информации о текущем пользователе
 const getCurrentUser = (req, res, next) => {
-  User
-    .findOne({ _id: req.params.userId })
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Нет пользователя с таким id');
+  User.findById(req.user._id)
+    .orFail()
+    .then((user) => res.status(200).send({ user }))
+    .catch((error) => {
+      if (error instanceof mongoose.Error.DocumentNotFoundError) {
+        return next(new NotFoundError('Не найден пользователь с таким id'));
       }
-      res.send(user);
-    })
-    .catch(next);
+      if (error instanceof mongoose.Error.CastError) {
+        return next(new BadRequestError('Передан некорректный id'));
+      }
+      return next(error);
+    });
+};
+
+// Получение пользователя по ID
+const getUserById = (req, res, next) => {
+  User.findById(req.params.userId)
+    .orFail()
+    .then((user) => res.send(user))
+    .catch((error) => {
+      if (error instanceof mongoose.Error.DocumentNotFoundError) {
+        return next(new NotFoundError('Не найден пользователь с таким id'));
+      }
+      if (error instanceof mongoose.Error.CastError) {
+        return next(new BadRequestError('Передан некорректный id'));
+      }
+      return next(error);
+    });
+};
+
+// Обновление всех данных профиля
+const updateProfile = (reqID, reqBody, res, next) => {
+  User.findByIdAndUpdate(reqID, reqBody, { new: true, runValidators: true })
+    .orFail()
+    .then((updatedUser) => res.send(updatedUser))
+    .catch((error) => {
+      if (error instanceof mongoose.Error.DocumentNotFoundError) {
+        return next(new NotFoundError('Не найден пользователь с таким id'));
+      }
+      return next(error);
+    });
+};
+
+// Обновление информации профиля(декоратор)
+const updateProfileInfo = (req, res, next) => {
+  const { _id } = req.user;
+  const { name, about } = req.body;
+  return updateProfile(_id, { name, about }, res, next);
+};
+
+// Обновление аватара профиля(декоратор)
+const updateAvatar = (req, res, next) => {
+  const { _id } = req.user;
+  const { avatar } = req.body;
+  return updateProfile(_id, { avatar }, res, next);
 };
 
 module.exports = {
-  getUsers, getUserById, createUser, updateProfile, updateAvatar, loginUser, getCurrentUser,
+  getUsers,
+  getUserById,
+  createUser,
+  updateProfileInfo,
+  updateAvatar,
+  loginUser,
+  getCurrentUser,
 };

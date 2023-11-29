@@ -27,11 +27,14 @@ const deleteCard = (req, res, next) => {
   Card.findById(cardId)
     .orFail()
     .then((card) => {
-      if (card.owner.toString() === req.user._id) {
-        Card.findByIdAndDelete(cardId)
-          .then(() => res.status(200).send({ card }));
-      } else {
+      if (card.owner.toString() !== req.user._id) {
         throw new ForbiddenError('Не хватает прав для удаления карточки');
+      } else {
+        Card.deleteOne(card)
+          .then(() => {
+            res.send({ message: 'Карточка успешно удалена' });
+          })
+          .catch(next);
       }
     })
     .catch((error) => {
